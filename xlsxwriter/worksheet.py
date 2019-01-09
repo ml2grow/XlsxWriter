@@ -941,8 +941,7 @@ class Worksheet(xmlwriter.XMLwriter):
         return str_error
     
     @convert_cell_args
-    def write_url_num(self, row, col, url, num, cell_format=None,
-                      tip=None):
+    def write_url_num(self, row, col, url, num, tip=None):
         """
         Write a hyperlink to a worksheet cell.
 
@@ -960,10 +959,10 @@ class Worksheet(xmlwriter.XMLwriter):
             -3: URL longer than Excel limit of 255 characters.
             -4: Exceeds Excel limit of 65,530 urls per worksheet.
         """
-        return self._write_url(row, col, url, num, cell_format, tip)
+        return self._write_url_num(row, col, url, num, tip)
 
     # Undecorated version of write_url().
-    def _write_url_num(self, row, col, url, num, cell_format=None, tip=None):
+    def _write_url_num(self, row, col, url, num, tip=None):
 
         # Check that row and col are valid and store max and min values
         if self._check_dimensions(row, col):
