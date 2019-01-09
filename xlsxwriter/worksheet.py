@@ -941,7 +941,7 @@ class Worksheet(xmlwriter.XMLwriter):
         return str_error
     
     @convert_cell_args
-    def write_url_num(self, row, col, url, num, tip=None):
+    def write_url_num(self, row, col, url, num, cell_format=None, tip=None):
         """
         Write a hyperlink to a worksheet cell.
 
