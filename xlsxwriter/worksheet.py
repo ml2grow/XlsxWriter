@@ -963,6 +963,10 @@ class Worksheet(xmlwriter.XMLwriter):
 
     # Undecorated version of write_url().
     def _write_url_num(self, row, col, url, num, tip=None):
+        try:
+            num = int(num)
+        except ValueError:
+            return
 
         # Check that row and col are valid and store max and min values
         if self._check_dimensions(row, col):
