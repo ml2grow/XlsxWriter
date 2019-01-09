@@ -940,9 +940,9 @@ class Worksheet(xmlwriter.XMLwriter):
 
         return str_error
     
-       @convert_cell_args
-    def write_url_num(self, row, col, url, cell_format=None,
-                  num=None, tip=None):
+    @convert_cell_args
+    def write_url_num(self, row, col, url, num, cell_format=None,
+                      tip=None):
         """
         Write a hyperlink to a worksheet cell.
 
@@ -951,7 +951,7 @@ class Worksheet(xmlwriter.XMLwriter):
             col:    The cell column (zero indexed).
             url:    Hyperlink url.
             format: An optional cell Format object.
-            string: An optional display string for the hyperlink.
+            num: An optional display number for the hyperlink.
             tip:    An optional tooltip.
         Returns:
             0:  Success.
@@ -960,19 +960,14 @@ class Worksheet(xmlwriter.XMLwriter):
             -3: URL longer than Excel limit of 255 characters.
             -4: Exceeds Excel limit of 65,530 urls per worksheet.
         """
-        return self._write_url(row, col, url, cell_format, num, tip)
+        return self._write_url(row, col, url, num, cell_format, tip)
 
     # Undecorated version of write_url().
-    def _write_url_num(self, row, col, url, cell_format=None,
-                   num=None, tip=None):
+    def _write_url_num(self, row, col, url, num, cell_format=None, tip=None):
 
         # Check that row and col are valid and store max and min values
         if self._check_dimensions(row, col):
             return -1
-
-        # Set the displayed string to the URL unless defined by the user.
-        if string is None:
-            string = url
 
         # Default to external link type such as 'http://' or 'external:'.
         link_type = 1
@@ -980,7 +975,6 @@ class Worksheet(xmlwriter.XMLwriter):
         # Remove the URI scheme from internal links.
         if url.startswith('internal:'):
             url = url.replace('internal:', '')
-            string = string.replace('internal:', '')
             link_type = 2
 
         # Remove the URI scheme from external links and change the directory
@@ -989,22 +983,15 @@ class Worksheet(xmlwriter.XMLwriter):
         if url.startswith('external:'):
             url = url.replace('external:', '')
             url = url.replace('/', '\\')
-            string = string.replace('external:', '')
-            string = string.replace('/', '\\')
             external = True
 
         # Strip the mailto header.
-        string = string.replace('mailto:', '')
 
         # Check that the string is < 32767 chars
         str_error = 0
-        if len(string) > self.xls_strmax:
-            warn("Ignoring URL since it exceeds Excel's string limit of "
-                 "32767 characters")
-            return -2
 
         # Copy string for use in hyperlink elements.
-        url_str = string
+        url_str = str(num)
 
         # External links to URLs and to other Excel workbooks have slightly
         # different characteristics that we have to account for.
@@ -1049,12 +1036,8 @@ class Worksheet(xmlwriter.XMLwriter):
         if self.constant_memory and row > self.previous_row:
             self._write_single_row(row)
 
-        # Add the default URL format.
-        if cell_format is None:
-            cell_format = self.default_url_format
-
         # Write the hyperlink string.
-        self._write_number(row, col, string, None)
+        self._write_number(row, col, num, None)
 
         # Store the hyperlink data in a separate structure.
         self.hyperlinks[row][col] = {
