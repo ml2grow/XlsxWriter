@@ -939,6 +939,131 @@ class Worksheet(xmlwriter.XMLwriter):
             'tip': tip}
 
         return str_error
+    
+       @convert_cell_args
+    def write_url_num(self, row, col, url, cell_format=None,
+                  num=None, tip=None):
+        """
+        Write a hyperlink to a worksheet cell.
+
+        Args:
+            row:    The cell row (zero indexed).
+            col:    The cell column (zero indexed).
+            url:    Hyperlink url.
+            format: An optional cell Format object.
+            string: An optional display string for the hyperlink.
+            tip:    An optional tooltip.
+        Returns:
+            0:  Success.
+            -1: Row or column is out of worksheet bounds.
+            -2: String longer than 32767 characters.
+            -3: URL longer than Excel limit of 255 characters.
+            -4: Exceeds Excel limit of 65,530 urls per worksheet.
+        """
+        return self._write_url(row, col, url, cell_format, num, tip)
+
+    # Undecorated version of write_url().
+    def _write_url_num(self, row, col, url, cell_format=None,
+                   num=None, tip=None):
+
+        # Check that row and col are valid and store max and min values
+        if self._check_dimensions(row, col):
+            return -1
+
+        # Set the displayed string to the URL unless defined by the user.
+        if string is None:
+            string = url
+
+        # Default to external link type such as 'http://' or 'external:'.
+        link_type = 1
+
+        # Remove the URI scheme from internal links.
+        if url.startswith('internal:'):
+            url = url.replace('internal:', '')
+            string = string.replace('internal:', '')
+            link_type = 2
+
+        # Remove the URI scheme from external links and change the directory
+        # separator from Unix to Dos.
+        external = False
+        if url.startswith('external:'):
+            url = url.replace('external:', '')
+            url = url.replace('/', '\\')
+            string = string.replace('external:', '')
+            string = string.replace('/', '\\')
+            external = True
+
+        # Strip the mailto header.
+        string = string.replace('mailto:', '')
+
+        # Check that the string is < 32767 chars
+        str_error = 0
+        if len(string) > self.xls_strmax:
+            warn("Ignoring URL since it exceeds Excel's string limit of "
+                 "32767 characters")
+            return -2
+
+        # Copy string for use in hyperlink elements.
+        url_str = string
+
+        # External links to URLs and to other Excel workbooks have slightly
+        # different characteristics that we have to account for.
+        if link_type == 1:
+
+            # Split url into the link and optional anchor/location.
+            if '#' in url:
+                url, url_str = url.split('#', 1)
+            else:
+                url_str = None
+
+            url = self._escape_url(url)
+
+            if url_str is not None and not external:
+                url_str = self._escape_url(url_str)
+
+            # Add the file:/// URI to the url for Windows style "C:/" link and
+            # Network shares.
+            if re.match(r'\w:', url) or re.match(r'\\', url):
+                url = 'file:///' + url
+
+            # Convert a .\dir\file.xlsx link to dir\file.xlsx.
+            url = re.sub(r'^\.\\', '', url)
+
+        # Excel limits the escaped URL and location/anchor to 255 characters.
+        tmp_url_str = url_str or ''
+        if len(url) > 255 or len(tmp_url_str) > 255:
+            warn("Ignoring URL '%s' with link or location/anchor > 255 "
+                 "characters since it exceeds Excel's limit for URLS" %
+                 force_unicode(url))
+            return -3
+
+        # Check the limit of URLS per worksheet.
+        self.hlink_count += 1
+
+        if self.hlink_count > 65530:
+            warn("Ignoring URL '%s' since it exceeds Excel's limit of "
+                 "65,530 URLS per worksheet." % force_unicode(url))
+            return -4
+
+        # Write previous row if in in-line string constant_memory mode.
+        if self.constant_memory and row > self.previous_row:
+            self._write_single_row(row)
+
+        # Add the default URL format.
+        if cell_format is None:
+            cell_format = self.default_url_format
+
+        # Write the hyperlink string.
+        self._write_number(row, col, string, None)
+
+        # Store the hyperlink data in a separate structure.
+        self.hyperlinks[row][col] = {
+            'link_type': link_type,
+            'url': url,
+            'str': url_str,
+            'tip': tip}
+
+        return str_error
 
     @convert_cell_args
     def write_rich_string(self, row, col, *args):
